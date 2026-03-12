@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import joblib
 
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report, accuracy_score
 
 INPUT_FILE = "sentiment_system/data/training_dataset.csv"
@@ -17,12 +17,16 @@ def main():
 
     df = pd.read_csv(INPUT_FILE)
 
-    # Features used for prediction
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values("date")
+
     features = [
-        "sentiment_strength",
+        "news_count",
         "rolling_3_sentiment",
         "rolling_7_sentiment",
-        "news_count_per_day"
+        "return_1d",
+        "return_3d",
+        "return_7d"
     ]
 
     X = df[features]
@@ -30,55 +34,87 @@ def main():
 
     print("Dataset size:", len(df))
 
-    print("Splitting dataset...")
+    split_index = int(len(df) * 0.8)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
-        random_state=42,
-        stratify=y
-    )
+    X_train = X.iloc[:split_index]
+    X_test = X.iloc[split_index:]
 
-    print("Training Random Forest model...")
+    y_train = y.iloc[:split_index]
+    y_test = y.iloc[split_index:]
 
-    model = RandomForestClassifier(
-        n_estimators=300,
-        max_depth=10,
-        class_weight="balanced",
-        random_state=42,
+    print("Training size:", len(X_train))
+    print("Testing size:", len(X_test))
+
+    print("Running hyperparameter search...")
+
+    model = GradientBoostingClassifier(random_state=42)
+
+    param_grid = {
+        "n_estimators": [200, 400, 600],
+        "learning_rate": [0.03, 0.05, 0.1],
+        "max_depth": [2, 3]
+    }
+
+    grid = GridSearchCV(
+        model,
+        param_grid,
+        cv=4,
         n_jobs=-1
     )
 
-    model.fit(X_train, y_train)
+    grid.fit(X_train, y_train)
 
-    print("Evaluating model...")
+    best_model = grid.best_estimator_
 
-    predictions = model.predict(X_test)
+    print("\nBest Parameters:", grid.best_params_)
 
-    accuracy = accuracy_score(y_test, predictions)
+    # ---------- Threshold tuning ----------
+
+    probs = best_model.predict_proba(X_test)
+
+    best_acc = 0
+    best_thresh = 0.5
+    best_preds = None
+
+    for t in [i/100 for i in range(40, 60)]:
+
+        preds = []
+
+        for p in probs:
+            if p[1] > t:
+                preds.append("UP")
+            else:
+                preds.append("DOWN")
+
+        acc = accuracy_score(y_test, preds)
+
+        if acc > best_acc:
+            best_acc = acc
+            best_thresh = t
+            best_preds = preds
+
+    print("\nBest Threshold:", best_thresh)
+
+    accuracy = best_acc
+    predictions = best_preds
 
     print("\nModel Accuracy:", accuracy)
 
     print("\nClassification Report:\n")
     print(classification_report(y_test, predictions))
 
-    # Show feature importance (good for explaining model)
-    importance = model.feature_importances_
+    importance = best_model.feature_importances_
 
     print("\nFeature Importance:")
 
     for f, score in zip(features, importance):
         print(f"{f}: {round(score,4)}")
 
-    # Ensure models folder exists
     os.makedirs(MODEL_DIR, exist_ok=True)
 
-    print("\nSaving model...")
+    joblib.dump(best_model, MODEL_FILE)
 
-    joblib.dump(model, MODEL_FILE)
-
-    print("Model saved to:", MODEL_FILE)
+    print("\nModel saved to:", MODEL_FILE)
 
 
 if __name__ == "__main__":

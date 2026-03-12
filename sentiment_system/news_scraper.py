@@ -17,33 +17,44 @@ def clean_text(text):
 
 def fetch_news(company):
 
-    query = company.replace(" ", "+") + "+stock"
-
-    url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
-
-    feed = feedparser.parse(url)
+    queries = [
+        f"{company} stock",
+        f"{company} earnings",
+        f"{company} results",
+        f"{company} share price",
+        f"{company} revenue",
+        f"{company} market"
+    ]
 
     articles = []
 
-    for entry in feed.entries:
+    for query in queries:
 
-        headline = entry.title
-        clean_headline = clean_text(headline)
+        query = query.replace(" ", "+")
 
-        if len(clean_headline.split()) < 5:
-            continue
+        url = f"https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
 
-        link = entry.link
-        source = entry.source.title if "source" in entry else "Unknown"
-        date = entry.published if "published" in entry else None
+        feed = feedparser.parse(url)
 
-        articles.append({
-            "headline": headline,
-            "clean_headline": clean_headline,
-            "date": date,
-            "source": source,
-            "link": link
-        })
+        for entry in feed.entries:
+
+            headline = entry.title
+            clean_headline = clean_text(headline)
+
+            if len(clean_headline.split()) < 5:
+                continue
+
+            link = entry.link
+            source = entry.source.title if "source" in entry else "Unknown"
+            date = entry.published if "published" in entry else None
+
+            articles.append({
+                "headline": headline,
+                "clean_headline": clean_headline,
+                "date": date,
+                "source": source,
+                "link": link
+            })
 
     return articles
 

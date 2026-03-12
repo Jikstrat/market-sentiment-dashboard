@@ -12,13 +12,12 @@ def get_stock_prices(symbol):
 
     data = yf.download(
         ticker,
-        period="1y",
+        period="3y",
         progress=False
     )
 
     data.reset_index(inplace=True)
 
-    # Handle possible multi-index columns
     if isinstance(data.columns, pd.MultiIndex):
         data.columns = data.columns.get_level_values(0)
 
@@ -45,9 +44,15 @@ def main():
 
         prices["Date"] = pd.to_datetime(prices["Date"])
 
+        prices = prices.sort_values("Date")
+
+        prices["return_1d"] = prices["Close"].pct_change(1)
+        prices["return_3d"] = prices["Close"].pct_change(3)
+        prices["return_7d"] = prices["Close"].pct_change(7)
+
         price_data[symbol] = prices
 
-    directions = []
+    rows = []
 
     print("Labeling price movements...")
 
@@ -56,36 +61,48 @@ def main():
         symbol = row["symbol"]
         news_date = row["date"]
 
-        prices = price_data[symbol].copy()
+        prices = price_data[symbol]
 
-        prices = prices.sort_values("Date")
-
-        # Find first trading day >= news day
         future_prices = prices[prices["Date"] >= news_date]
 
         if len(future_prices) < 2:
-            directions.append(None)
             continue
 
-        today_price = future_prices.iloc[0]["Close"]
-        next_price = future_prices.iloc[1]["Close"]
+        today_row = future_prices.iloc[0]
+        next_row = future_prices.iloc[1]
 
-        # Ensure numeric
-        today_price = float(today_price)
-        next_price = float(next_price)
+        today_price = float(today_row["Close"])
+        next_price = float(next_row["Close"])
 
-        if next_price > today_price:
-            directions.append("UP")
+        ret = (next_price - today_price) / today_price
+
+        # Stronger signal threshold
+        if ret > 0.005:
+            direction = "UP"
+        elif ret < -0.005:
+            direction = "DOWN"
         else:
-            directions.append("DOWN")
+            continue
 
-    df["direction"] = directions
+        rows.append({
+            "symbol": symbol,
+            "date": news_date,
+            "news_count": row["news_count"],
+            "rolling_3_sentiment": row["rolling_3_sentiment"],
+            "rolling_7_sentiment": row["rolling_7_sentiment"],
+            "return_1d": today_row["return_1d"],
+            "return_3d": today_row["return_3d"],
+            "return_7d": today_row["return_7d"],
+            "direction": direction
+        })
 
-    df = df.dropna()
+    df_final = pd.DataFrame(rows)
 
-    print("Final training dataset size:", len(df))
+    df_final = df_final.dropna()
 
-    df.to_csv(OUTPUT_FILE, index=False)
+    print("Final training dataset size:", len(df_final))
+
+    df_final.to_csv(OUTPUT_FILE, index=False)
 
     print("Training dataset saved to:", OUTPUT_FILE)
 

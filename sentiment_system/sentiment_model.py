@@ -14,6 +14,8 @@ def load_model():
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
 
+    model.eval()
+
     return tokenizer, model
 
 
@@ -21,15 +23,26 @@ def predict_sentiment(text, tokenizer, model):
 
     inputs = tokenizer(text, return_tensors="pt", truncation=True)
 
-    outputs = model(**inputs)
+    with torch.no_grad():
 
-    probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
+        outputs = model(**inputs)
 
-    score, label = torch.max(probs, dim=1)
+        probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
 
-    labels = ["negative", "neutral", "positive"]
+    negative = probs[0][0].item()
+    neutral = probs[0][1].item()
+    positive = probs[0][2].item()
 
-    return labels[label], score.item()
+    sentiment_score = positive - negative
+
+    if positive > negative:
+        label = "positive"
+    elif negative > positive:
+        label = "negative"
+    else:
+        label = "neutral"
+
+    return label, sentiment_score
 
 
 def main():

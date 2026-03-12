@@ -1,25 +1,4 @@
-Yes — I understand exactly what you want. You want a **deep README like the PDF you showed**, something you can:
-
-* study before interviews
-* use to explain the project end-to-end
-* include in GitHub
-* understand every pipeline decision
-
-Your PDF example is basically a **technical whitepaper style README**, explaining architecture, pipelines, reasoning, and ML decisions. 
-
-I’ll generate a **full README in that same style**, but tailored to **your actual project implementation** (dashboard + sentiment pipeline).
-
-You can copy this directly into:
-
-```
-README.md
-```
-
-or convert it into **PDF for submission**.
-
----
-
-# 📈 Market Sentiment Analysis for NSE Stocks
+# 📈 NSE Market Sentiment Dashboard
 
 ### Financial News Sentiment + Machine Learning Prediction System
 
@@ -27,124 +6,103 @@ or convert it into **PDF for submission**.
 
 # 1. Project Overview
 
-This project builds an **end-to-end financial machine learning system** that predicts the **next-day stock price direction** for companies listed in the **NSE NIFTY 50 index** using **financial news sentiment analysis**.
+This project implements a **complete end-to-end machine learning pipeline** that predicts the **next-day price direction (UP/DOWN)** for stocks in the **NIFTY 50 index** using **financial news sentiment and market momentum features**.
 
-Instead of predicting the exact stock price (which is extremely noisy and difficult), the system predicts:
+Rather than attempting to predict exact prices (which is extremely difficult due to market noise), the system predicts the **probability of directional movement**.
+
+The system integrates:
 
 ```
-UP or DOWN movement for the next trading day
+Financial News Scraping
+↓
+Financial NLP (FinBERT)
+↓
+Feature Engineering
+↓
+Momentum Indicators
+↓
+Machine Learning Prediction
+↓
+Interactive Dashboard
 ```
 
-The project integrates:
-
-* Natural Language Processing
-* Financial sentiment modeling
-* Feature engineering
-* Supervised machine learning
-* Real-time prediction dashboard
-
-The final output is delivered through an **interactive analytics dashboard built using Streamlit**.
+The final system is deployed as a **Streamlit dashboard** that allows users to analyze **individual stocks and overall market sentiment**.
 
 ---
 
-# 2. Why News Sentiment?
+# 2. Motivation
 
-Financial markets react strongly to information.
+Financial markets react strongly to information released through news and corporate announcements.
 
 Examples include:
 
-* Earnings announcements
+* Earnings reports
 * Corporate investments
-* Government regulations
+* Government policy changes
 * Mergers and acquisitions
-* Analyst recommendations
+* Analyst upgrades/downgrades
 * Macroeconomic developments
 
-Markets do not react to keywords — they react to **sentiment and confidence in information**.
+Markets respond not just to events, but to **the sentiment and tone of the information**.
 
 Example:
 
 ```
-"Company expands manufacturing capacity"
+"Tata Motors reports record EV sales growth"
 ```
 
-This may indicate growth and cause a **positive market reaction**.
+This likely produces **positive investor sentiment**, increasing buying pressure.
 
-Therefore this project focuses on **sentiment momentum rather than keyword matching**.
+Therefore this project models **news sentiment momentum combined with price momentum** to estimate short-term stock direction.
 
 ---
 
-# 3. High-Level Architecture
+# 3. System Architecture
 
-```
-Financial News
-       │
-       ▼
-News Scraping System
-       │
-       ▼
-Financial Sentiment Analysis (FinBERT)
-       │
-       ▼
-Feature Engineering
-       │
-       ▼
-Price Label Generation
-       │
-       ▼
-Machine Learning Model Training
-       │
-       ▼
-Prediction Engine
-       │
-       ▼
-Interactive Market Dashboard
-```
-
----
-
-# 4. System Architecture
-
-The project is designed as a **multi-stage machine learning pipeline**.
+The project is structured as a **multi-stage machine learning pipeline**.
 
 ```
 Google News RSS
-       │
-       ▼
+        │
+        ▼
 news_scraper.py
-       │
-       ▼
+        │
+        ▼
 sentiment_model.py
-(FinBERT)
-       │
-       ▼
+(FinBERT sentiment)
+        │
+        ▼
 feature_engineer.py
-       │
-       ▼
+(sentiment aggregation)
+        │
+        ▼
 price_labeler.py
-       │
-       ▼
+(momentum features + labels)
+        │
+        ▼
 train_model.py
-(Random Forest)
-       │
-       ▼
+(Gradient Boosting model)
+        │
+        ▼
 Saved Model
-(random_forest_model.pkl)
-       │
-       ▼
+random_forest_model.pkl
+        │
+        ▼
 predictor.py
-       │
-       ▼
+(real-time inference)
+        │
+        ▼
 market_ranker.py
-       │
-       ▼
+(market-wide ranking)
+        │
+        ▼
 dashboard.py
-(Streamlit UI)
+(Streamlit interface)
 ```
 
 ---
 
-# 5. Project Structure
+# 4. Project Structure
 
 ```
 stock_ai_project
@@ -167,7 +125,7 @@ stock_ai_project
 
 ---
 
-# 6. Data Ingestion – News Scraping
+# 5. Data Source – Financial News
 
 File:
 
@@ -175,31 +133,27 @@ File:
 news_scraper.py
 ```
 
-Purpose:
-
-Collect financial news headlines for NIFTY 50 companies.
-
-Data source:
+The system collects financial headlines for NIFTY 50 companies using:
 
 ```
 Google News RSS
 ```
 
-Why Google News?
+Advantages:
 
-* aggregates multiple financial sources
-* stable RSS format
-* good coverage of Indian financial news
-* easy to parse programmatically
+* Aggregates multiple financial news sources
+* Consistent RSS structure
+* High coverage of Indian markets
+* Reliable and easy to parse
 
-Each news entry contains:
+Each news entry stores:
 
 ```
 headline
 date
-source
 company
 symbol
+source
 link
 ```
 
@@ -207,7 +161,7 @@ This forms the **raw financial news dataset**.
 
 ---
 
-# 7. Financial Sentiment Analysis – FinBERT
+# 6. Financial Sentiment Analysis (FinBERT)
 
 File:
 
@@ -215,60 +169,55 @@ File:
 sentiment_model.py
 ```
 
-The project uses **FinBERT**, a transformer model trained specifically on financial text.
+The system uses **FinBERT**, a transformer model trained specifically on financial text.
 
-FinBERT understands:
+FinBERT understands financial language such as:
 
-* earnings reports
-* analyst commentary
-* financial news language
-* corporate tone
-
-Why FinBERT instead of generic BERT?
-
-Generic NLP models misunderstand financial language.
+* earnings
+* losses
+* forecasts
+* guidance revisions
+* market expectations
 
 Example:
 
 ```
-"Loss narrowed compared to last quarter"
+Headline:
+"Infosys narrows losses in European market"
+
+Generic NLP sentiment → negative  
+Financial interpretation → positive
 ```
 
-Generic sentiment → negative
-Financial interpretation → positive
-
-FinBERT captures these nuances.
+FinBERT correctly interprets such financial contexts.
 
 ---
 
-## Output of Sentiment Model
+### Sentiment Output
 
-Each headline produces:
+Each headline generates:
 
 ```
 sentiment_label
 positive / neutral / negative
 
 sentiment_score
-probability confidence
+confidence probability
 ```
 
 Example:
 
 ```
 Headline:
-Reliance expands renewable energy investments
+Reliance invests in renewable energy expansion
 
-Sentiment:
-Positive
-
-Score:
-0.81
+Sentiment: Positive
+Score: 0.82
 ```
 
 ---
 
-# 8. Feature Engineering
+# 7. Feature Engineering
 
 File:
 
@@ -276,73 +225,49 @@ File:
 feature_engineer.py
 ```
 
-Raw sentiment is noisy.
+Raw news sentiment is extremely noisy.
 
-Markets react not to single headlines but to **sentiment trends over time**.
-
-Therefore we generate structured features.
+To capture **market reaction dynamics**, several engineered features are created.
 
 ---
 
-## Features Used
-
-### Sentiment Score
-
-Direct output from FinBERT.
-
-```
-sentiment_score
-```
-
----
-
-### Sentiment Strength
-
-Measures confidence away from neutrality.
-
-```
-sentiment_strength = |score - 0.5|
-```
-
-Higher value → stronger sentiment.
-
----
+## Sentiment Features
 
 ### Rolling Sentiment Momentum
-
-Two rolling sentiment features are created.
 
 ```
 rolling_3_sentiment
 rolling_7_sentiment
 ```
 
-Why rolling windows?
-
-Markets react to **accumulation of sentiment signals**.
+These capture **multi-day sentiment trends**.
 
 Example:
 
 ```
-1 positive headline → small reaction
-5 positive headlines → stronger reaction
+1 positive headline → weak signal
+5 positive headlines → stronger signal
 ```
 
-Rolling features capture this **sentiment momentum**.
+Markets react to **accumulated information**, not isolated news.
 
 ---
 
-### News Frequency
+### News Volume
 
 ```
-news_count_per_day
+news_count
 ```
 
-High news coverage often correlates with increased market volatility.
+Higher news coverage often indicates:
+
+* increased market attention
+* higher volatility
+* stronger reactions
 
 ---
 
-# 9. Price Labeling
+# 8. Momentum Features
 
 File:
 
@@ -350,63 +275,70 @@ File:
 price_labeler.py
 ```
 
-This stage converts sentiment signals into **supervised learning labels**.
+Financial markets are highly momentum-driven.
 
-For each news event we compare:
+To capture this behavior the system adds **price momentum features**.
 
-```
-today_close → next_day_close
-```
-
-Return:
+### Momentum Indicators
 
 ```
-(next_close - today_close) / today_close
+return_1d
+return_3d
+return_7d
 ```
 
-Label assignment:
+These measure recent price movements before the news event.
+
+Example:
 
 ```
-UP   → if price increased
-DOWN → if price decreased
+Strong uptrend + positive news → stronger continuation probability
 ```
+
+Combining **sentiment + momentum** improves predictive performance.
 
 ---
 
-## Price Data Source
+# 9. Label Generation
 
-Stock prices are fetched using:
+Each training observation is labeled based on **next-day price movement**.
+
+Price data is obtained using:
 
 ```
 Yahoo Finance API (yfinance)
 ```
 
-Reasons:
+Return calculation:
 
-* structured financial data
-* reliable historical records
-* avoids fragile web scraping
+```
+(next_day_close − today_close) / today_close
+```
+
+Label rules:
+
+```
+UP   → positive return
+DOWN → negative return
+```
+
+Small price fluctuations are filtered to remove noise.
 
 ---
 
-# 10. Final Supervised Dataset
+# 10. Final Training Dataset
 
-After processing the dataset becomes:
-
-```
-[ sentiment_score
-  sentiment_strength
-  rolling_3_sentiment
-  rolling_7_sentiment
-  news_count_per_day ]
-      ↓
-   direction
-```
-
-Where:
+The supervised dataset contains:
 
 ```
-direction = UP or DOWN
+news_count
+rolling_3_sentiment
+rolling_7_sentiment
+return_1d
+return_3d
+return_7d
+↓
+direction (UP/DOWN)
 ```
 
 This forms a **binary classification problem**.
@@ -424,67 +356,112 @@ train_model.py
 The project uses a:
 
 ```
-Random Forest Classifier
+Gradient Boosting Classifier
+```
+
+Gradient Boosting builds an ensemble of sequential decision trees where each tree improves the previous model's errors.
+
+---
+
+# 12. Why Gradient Boosting?
+
+Gradient Boosting is well suited for financial tabular datasets.
+
+Advantages include:
+
+| Advantage                       | Benefit                        |
+| ------------------------------- | ------------------------------ |
+| Handles nonlinear relationships | Markets are nonlinear          |
+| Captures feature interactions   | Sentiment + momentum effects   |
+| Works well on small datasets    | No need for huge training sets |
+| Strong predictive performance   | Widely used in finance         |
+
+---
+
+# 13. Model Optimization
+
+Several improvements were implemented during training:
+
+### Time-Based Train/Test Split
+
+```
+80% historical data → training
+20% recent data → testing
+```
+
+This simulates **real-world forecasting conditions**.
+
+---
+
+### Hyperparameter Search
+
+Grid search was used to tune:
+
+```
+learning_rate
+max_depth
+n_estimators
 ```
 
 ---
 
-# 12. Why Random Forest?
+### Threshold Optimization
 
-Random Forest was chosen for several reasons.
+The prediction threshold was optimized to improve classification balance.
 
-| Reason                          | Benefit                         |
-| ------------------------------- | ------------------------------- |
-| Handles nonlinear relationships | Financial data is rarely linear |
-| Robust to noise                 | News data is noisy              |
-| Ensemble learning               | Reduces variance                |
-| Minimal hyperparameter tuning   | Good for limited datasets       |
-| Feature importance              | Easy to interpret               |
-
-Financial markets are **noisy and complex**, making Random Forest a strong baseline model.
-
----
-
-# 13. Model Parameters
+Default:
 
 ```
-RandomForestClassifier(
-    n_estimators = 300,
-    max_depth = 10,
-    random_state = 42
-)
+UP if probability > 0.50
 ```
 
-Why these values?
+Optimized threshold:
 
 ```
-300 trees → stable ensemble
-depth 10 → avoids overfitting
-random_state → reproducibility
+≈ 0.41
 ```
 
 ---
 
 # 14. Model Performance
 
-Model accuracy:
+Final test accuracy:
 
 ```
-≈ 56%
+≈ 56.4%
 ```
 
 In financial prediction:
 
 ```
 50% → random guessing
-55–60% → meaningful signal
+55–60% → meaningful predictive signal
 ```
 
-Therefore the model demonstrates **statistical predictive power**.
+Therefore the model demonstrates **statistical predictive power above random chance**.
 
 ---
 
-# 15. Prediction Engine
+# 15. Feature Importance
+
+The trained model identifies the most important predictors.
+
+| Feature             | Importance |
+| ------------------- | ---------- |
+| return_1d           | highest    |
+| return_7d           | high       |
+| return_3d           | high       |
+| rolling_7_sentiment | moderate   |
+| rolling_3_sentiment | moderate   |
+| news_count          | lower      |
+
+This indicates that **price momentum is the strongest driver**, while **news sentiment adds additional predictive context**.
+
+This finding aligns with financial research literature.
+
+---
+
+# 16. Prediction Engine
 
 File:
 
@@ -492,33 +469,33 @@ File:
 predictor.py
 ```
 
-This module performs real-time inference.
+The prediction module performs **real-time sentiment analysis and inference**.
 
 Steps:
 
 ```
-Fetch latest financial news
-      ↓
-Run sentiment analysis
-      ↓
+Fetch latest news headlines
+↓
+Run FinBERT sentiment analysis
+↓
 Generate sentiment features
-      ↓
-Load trained model
-      ↓
-Predict price direction
+↓
+Load trained ML model
+↓
+Predict UP/DOWN probability
 ```
 
 Example output:
 
 ```
 Prediction: UP
-UP probability: 0.66
-DOWN probability: 0.34
+UP probability: 0.64
+DOWN probability: 0.36
 ```
 
 ---
 
-# 16. Market Ranking Engine
+# 17. Market Ranking Engine
 
 File:
 
@@ -526,25 +503,20 @@ File:
 market_ranker.py
 ```
 
-Runs predictions across **all NIFTY 50 stocks**.
+This module runs predictions across **all NIFTY 50 stocks** and ranks them by sentiment strength.
 
-The system then ranks stocks by:
-
-```
-highest UP probability
-highest DOWN probability
-```
-
-Output:
+Output includes:
 
 ```
 Top Positive Sentiment Stocks
 Top Negative Sentiment Stocks
 ```
 
+This provides a **market-wide sentiment snapshot**.
+
 ---
 
-# 17. Interactive Dashboard
+# 18. Interactive Dashboard
 
 File:
 
@@ -552,46 +524,24 @@ File:
 dashboard.py
 ```
 
-The final system is deployed as a **Streamlit dashboard**.
+The final system is deployed as an **interactive analytics dashboard using Streamlit**.
 
 Features include:
 
 ```
-Stock search prediction
-News headline analysis
-Stock price chart
+Stock sentiment analysis
+Real-time news sentiment
+Prediction probabilities
+3-month price chart
 Market sentiment ranking
-System details and model information
+Model explanation
 ```
 
-Run the dashboard:
+Run the dashboard locally:
 
 ```
 streamlit run dashboard.py
 ```
-
----
-
-# 18. Example Dashboard Workflow
-
-1️⃣ Select stock
-
-```
-RELIANCE
-```
-
-2️⃣ Run analysis
-
-3️⃣ View:
-
-```
-Market outlook
-Probability scores
-Relevant news headlines
-Stock price chart
-```
-
-4️⃣ Generate market sentiment overview.
 
 ---
 
@@ -605,6 +555,7 @@ Transformers (FinBERT)
 Streamlit
 Yahoo Finance API
 Google News RSS
+NumPy
 yfinance
 ```
 
@@ -615,56 +566,55 @@ yfinance
 Current system limitations include:
 
 ```
-Only sentiment signals used
+Limited historical news coverage
+No sector-specific models
 No technical indicators
-No volume analysis
-No macroeconomic factors
+No macroeconomic variables
 ```
 
-These could improve prediction accuracy in future versions.
+Financial markets are influenced by many additional factors.
 
 ---
 
 # 21. Future Improvements
 
-Possible extensions:
+Possible extensions include:
 
 ```
-LSTM / Transformer time series models
+Transformer-based time series models
 Technical indicator integration
-Volume-based features
-Sector-level models
-Real-time streaming data
-Portfolio optimization
+Sector-specific sentiment models
+Real-time streaming data pipelines
+Portfolio optimization strategies
 ```
 
 ---
 
 # 22. Resume Description
 
-**AI Market Sentiment Analysis System**
+**Financial News Sentiment Prediction System**
 
-Built an end-to-end financial NLP and machine learning system that predicts next-day NSE stock direction using FinBERT sentiment analysis and a Random Forest classifier. Developed automated data pipelines for news ingestion, sentiment feature engineering, supervised learning, and deployed a real-time analytics dashboard using Streamlit.
+Developed an end-to-end machine learning pipeline that predicts next-day NIFTY 50 stock direction using FinBERT sentiment analysis and Gradient Boosting models. Implemented automated news scraping, sentiment feature engineering, momentum indicators, model training, and deployed a real-time market analytics dashboard using Streamlit.
 
 ---
 
-# 23. Interview Summary (2 Sentence Version)
+# 23. Interview Summary (Short Version)
 
-I built an end-to-end financial NLP and machine learning system that predicts next-day NSE stock price direction using FinBERT sentiment analysis and a Random Forest classifier. The system scrapes financial news, generates sentiment momentum features, aligns them with historical price movements, trains a supervised model, and deploys predictions through an interactive dashboard.
+Built an end-to-end financial NLP and machine learning system that predicts next-day stock direction for NIFTY 50 companies using FinBERT sentiment analysis combined with price momentum features. The system automates news ingestion, feature engineering, supervised learning, and real-time predictions through an interactive dashboard.
 
 ---
 
 # 24. Final Statement
 
-This project demonstrates:
+This project demonstrates expertise in:
 
 ```
-Data Engineering
 Financial NLP
 Feature Engineering
-Supervised Machine Learning
-End-to-End ML Pipelines
-Interactive Analytics Dashboard
+Machine Learning Pipelines
+Data Engineering
+Model Deployment
+Interactive Analytics Dashboards
 ```
 
-It represents a **complete financial machine learning system**, not just a model.
+

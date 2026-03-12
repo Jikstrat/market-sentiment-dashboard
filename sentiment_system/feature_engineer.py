@@ -10,13 +10,8 @@ def main():
 
     df = pd.read_csv(INPUT_FILE)
 
-    # Ensure correct date format
     df["date"] = pd.to_datetime(df["date"])
 
-    # Sort by company and date
-    df = df.sort_values(["symbol", "date"])
-
-    # Convert sentiment label → numeric
     sentiment_map = {
         "positive": 1,
         "neutral": 0,
@@ -25,44 +20,41 @@ def main():
 
     df["sentiment_numeric"] = df["sentiment_label"].map(sentiment_map)
 
-    # Sentiment strength
-    df["sentiment_strength"] = abs(df["sentiment_score"] - 0.5)
+    print("Aggregating sentiment by day...")
+
+    daily = df.groupby(["symbol", "date"]).agg(
+
+        sentiment_mean=("sentiment_numeric", "mean"),
+        sentiment_std=("sentiment_numeric", "std"),
+        positive_ratio=("sentiment_numeric", lambda x: (x == 1).mean()),
+        negative_ratio=("sentiment_numeric", lambda x: (x == -1).mean()),
+        news_count=("headline", "count")
+
+    ).reset_index()
 
     print("Generating rolling sentiment features...")
 
-    # Rolling features per company
-    df["rolling_3_sentiment"] = (
-        df.groupby("symbol")["sentiment_numeric"]
+    daily = daily.sort_values(["symbol", "date"])
+
+    daily["rolling_3_sentiment"] = (
+        daily.groupby("symbol")["sentiment_mean"]
         .rolling(3)
         .mean()
         .reset_index(level=0, drop=True)
     )
 
-    df["rolling_7_sentiment"] = (
-        df.groupby("symbol")["sentiment_numeric"]
+    daily["rolling_7_sentiment"] = (
+        daily.groupby("symbol")["sentiment_mean"]
         .rolling(7)
         .mean()
         .reset_index(level=0, drop=True)
     )
 
-    # News volume per day
-    df["news_count_per_day"] = (
-        df.groupby(["symbol", "date"])["headline"]
-        .transform("count")
-    )
+    daily = daily.dropna()
 
-    print("Cleaning dataset...")
+    print("Final dataset size:", len(daily))
 
-    # Remove rows with insufficient rolling history
-    df = df.dropna()
-
-    print("Final dataset size:", len(df))
-
-    # Safety check
-    if len(df) < 300:
-        raise ValueError("Dataset too small after feature engineering.")
-
-    df.to_csv(OUTPUT_FILE, index=False)
+    daily.to_csv(OUTPUT_FILE, index=False)
 
     print("Feature dataset saved to:", OUTPUT_FILE)
 

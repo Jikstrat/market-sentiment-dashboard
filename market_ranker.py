@@ -1,9 +1,12 @@
 import pandas as pd
+import streamlit as st
+
 from sentiment_system.predictor import predict_stock
 
 STOCK_FILE = "sentiment_system/data/nifty50_stocks.csv"
 
 
+@st.cache_data(ttl=600)
 def rank_market():
 
     stocks = pd.read_csv(STOCK_FILE)
@@ -25,7 +28,6 @@ def rank_market():
         except Exception as e:
             print("Prediction failed for:", symbol, e)
 
-    # If no predictions worked
     if len(results) == 0:
         return pd.DataFrame(), pd.DataFrame()
 

@@ -130,28 +130,47 @@ if st.button("Generate Market Overview"):
 st.divider()
 
 # ------------------------------
+# ------------------------------
 # SYSTEM DETAILS
 
 st.subheader("System Details")
 
-st.write("This dashboard evaluates market sentiment signals derived from financial news and historical price behaviour.")
+st.write(
+    "This system analyzes financial news sentiment and recent market momentum to estimate "
+    "the short-term directional outlook for NIFTY 50 equities."
+)
 
 col1, col2 = st.columns(2)
 
 with col1:
 
-    st.markdown("**Analytical Model**")
+    st.markdown("**Prediction Pipeline**")
 
-    st.write("Random Forest Classifier")
+    st.write(
+        "Financial news headlines are collected and analyzed using the **FinBERT** "
+        "natural language model to extract sentiment signals. "
+        "These signals are aggregated over multiple days and combined with "
+        "recent price momentum indicators."
+    )
 
-    st.markdown("**Training Dataset Size**")
-
-    st.write("3924 observations")
+    st.write(
+        "The engineered features are then evaluated using a **Gradient Boosting "
+        "machine learning model** trained to predict next-day price direction."
+    )
 
 with col2:
 
-    st.markdown("**Directional Accuracy**")
+    st.markdown("**Model Performance**")
 
-    st.write("~56%")
+    st.write(
+        "The model achieves approximately **56% directional accuracy** on unseen data."
+    )
 
-st.caption("Data sources include financial news feeds and historical market data.")
+    st.write(
+        "In financial prediction tasks, even small improvements above random chance "
+        "(50%) are considered meaningful due to the inherently noisy nature of markets."
+    )
+
+st.caption(
+    "Sentiment analysis powered by FinBERT (ProsusAI). Market data sourced from Yahoo Finance."
+)
